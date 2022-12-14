@@ -27,7 +27,10 @@ module.exports =
                 let user = this.UsersRepository.get(bindedImage.UserId);
                 if (user) {
                     bindedImage.Username = user.Name;
-                    bindedImage.UserAvatarURL = user.AvatarURL
+                    if (user.AvatarURL == 'http://localhost:5000/images/undefined.png')
+                        bindedImage.UserAvatarURL = 'http://localhost:5000/ImagesManager2022/images/No_Avatar.png'
+                    else
+                        bindedImage.UserAvatarURL = user.AvatarURL
                 }
                 return bindedImage;
             }

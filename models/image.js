@@ -6,7 +6,7 @@ class Image extends Model{
         super();
         this.Title = "";
         this.Description = "";
-        this.Shared = false;
+        this.Shared = true;
         this.Date =  0;
         this.GUID = "";
         this.UserId = 0;

@@ -47,10 +47,11 @@ function USER_MODIFY(user, successCallBack, errorCallBack) {
         error: function (jqXHR) { errorCallBack(jqXHR.status) }
     });
 }
-function USER_DELETE(id, successCallBack, errorCallBack) {
+function USER_DELETE(id, successCallBack, errorCallBack, access_token) {
     $.ajax({
-        url: apiUserURL + "/" + id,
-        type: 'DELETE',
+        url: apiUserURL + "/remove/" + id,
+        type: 'GET',
+        headers: {'Authorization': `Bearer ${access_token}`},
         success: () => { successCallBack() },
         error: function (jqXHR) { errorCallBack(jqXHR.status) }
     });

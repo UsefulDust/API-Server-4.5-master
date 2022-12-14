@@ -69,10 +69,10 @@
                 <span id="userNameConnected"></span>
                 <span class="cmd fa fa-plus-square" id="newImageCmd" title="Ajouter une image"
                     data-toggle="tooltip"></span>
-                <div id="userIdentification" onclick="modifyUser()">
+                <div id="userIdentification">
                     <img src="images/No_Avatar.png" alt="Image de l'utilisateur" id="imageUser">
-                    <span id="userName" style="font-weight: bold; font-size: 18px;"></span>
-                    <span class="cmd fa fa-user-gear" id="modifyUserCmd" title="Modifier votre compte"
+                    <span id="userName" style="font-weight: bold; font-size: 18px;" onclick="showVerificationDlg()"></span>
+                    <span class="cmd fa fa-user-gear" id="modifyUserCmd" title="Modifier votre compte" onclick="modifyUser()"
                         data-toggle="tooltip"></span>
                 </div>
                 <span class="cmd fa fa-right-from-bracket" id="logoutCmd" title="Se déconnecter" onclick="disconnect()"
@@ -122,6 +122,8 @@
                     <div id='image' class='ImageUploader' defaultImage='images/No_Image.png'
                         waitingImage='images/writing.gif'>
                     </div>
+                    <label for="shared_checkbox">Partagé l'image</label>
+                    <input type="checkbox" name="shared_checkbox" id="shared_checkbox">
                     <div class="note">Cliquez-Déposez une image</div>
                 </form>
             </div>
@@ -140,6 +142,7 @@
             <div id="accountDlg">
                 <form id="accountForm">
                     <input type="hidden" id="userId_input" value="0">
+                    <input type="hidden" id="userGUID_input" value="">
 
                     <label for="userName_input">Nom d'usager</label>
                     <input type="text" id="userName_input" class="form-control" required>
@@ -153,8 +156,8 @@
                     <label for="userConfirmation_input">Confirmation</label>
                     <input type="password" id="userConfirmation_input" class="form-control" required>
 
-                    <label for="user_avatar">Avatar</label>
-                    <div id='user_avatar' class='ImageUploader' defaultImage='images/No_Avatar.png'
+                    <label for="avatar">Avatar</label>
+                    <div id='avatar' class='ImageUploader' defaultImage='images/No_Avatar.png'
                         waitingImage='images/writing.gif'>
                     </div>
                 </form>
@@ -167,14 +170,7 @@
                     <input type="text" id="verify_input" class="form-control" required>
                 </form>
             </div>
-            <div id="imageInfoDlg">
-                    <span id="imageInfoTitre"></span>
-                    <p id="imageInfoDescription">
-                    </p>
-                    <a href=""><img src="" alt="Une image" id="imageInfoImg"></a>
-                    <img src="" alt="" id="imageInfoUserAvatar"><span id="imageInfoUserName"></span>
-                    <span id="imageInfoDate"></span>
-            </div>
+
             <div id="aProposDlg">
                 <h5 id="nom">Développeur: Vincent Lepage</h5>
             </div>
@@ -183,6 +179,18 @@
             </div>
             <div id="errorDlg">
                 <span id="errorMessage"></span>
+            </div>
+            <div id="imageInfoDlg">
+                <a href="" id="imageInfoHref"><img src="" alt="Une image" id="imageInfoImg"></a>
+                <label for="imageInfoTitre">Titre:</label>
+                <div id="imageInfoTitre" style="font-weight: bold;"></div>
+                <label for="imageInfoDescription">Description:</label>
+                <p id="imageInfoDescription">
+                </p>
+                <label for="imageInfoUserName">Auteur:</label>
+                <img src="" alt="user avatar" id="imageInfoUserAvatar"><span id="imageInfoUserName"></span><br>
+                <label for="imageInfoDate">Date de publication:</label>
+                <div id="imageInfoDate"></div>
             </div>
         </div>
     </div>
@@ -200,7 +208,7 @@
         let currentETag = "";
         let createMode = true;
         let hideSearchBar = true;
-        let imageIdToDelete = 0; // used by confirmDeleteDlg
+        let IdToDelete = 0; // used by confirmDeleteDlg
         let selectedUserId = 0;
         let imagesCount = 50;
         let appendCount = 3;
@@ -215,6 +223,9 @@
         let noVerifyAccount = [];
         let showResearchBar = false;
         let connectedAccount = [];
+        let imageOrAccountToDelete = "";
+        let imagesList = [];
+        let userIdToDelete = 0;
 
         init_UI();
         HEAD(checkETag, error);
@@ -225,19 +236,10 @@
             $("#aProposDlg").dialog('open');
         }
 
-        function refreshUserList(users) {
-            console.log(loginInfo.Access_token); // à effacer
-            $("#searchByUser").empty();
-            $("#searchByUser").append("<option value='*'>Tous les utilisateurs</option>");
-            for (let item of users) {
-                let selected = (selectedUserId == item.Id ? " selected " : "");
-                if (loginInfo.UserId == item.UserId) {
-                    $("#searchByUser").append(`<option value='${item.UserId}' ${selected}>Mes images</option>`);
-                }
-                else {
-                    $("#searchByUser").append(`<option value='${item.UserId}' ${selected}>${item.Username}</option>`);
-                }
-            }
+        function showVerificationDlg()
+        {
+            if (!isVerifiedUser())
+                mailVerification(connectedAccount);
         }
 
         function changeRememberState() {
@@ -247,7 +249,6 @@
             else {
                 localStorage.setItem("remember", 1);
             }
-            alert(localStorage.getItem("remember"));
         }
 
         function checkIfConnectedUser() {
@@ -262,7 +263,7 @@
         }
 
         function mailVerification(account) {
-            noVerifyAccount = account;
+            connectedAccount = account;
             getUser();
             $("#verifyAccountDlg").dialog('option', 'title', "Vérification de courriel");
             $("#verifyAccountOkBtn").text('Vérifier');
@@ -322,7 +323,22 @@
                 return queryString;
             }
             GET_ALL(refreshimagesList, error, prepareQueryString());
-            GET_ALL(refreshUserList, error, "?fields=UserId,Username")
+            GET_ALL(refreshUserList, error, "?fields=UserId,Username");
+        }
+
+        function refreshUserList(users) {
+            $("#searchByUser").empty();
+            $("#searchByUser").append("<option value=''>Tous les utilisateurs</option>");
+            id = parseInt(selectedUserId);
+            for (let item of users) {
+                let selected = (id == item.UserId ? " selected " : "");
+                if (loginInfo.UserId == item.UserId) {
+                    $("#searchByUser").append(`<option value='${item.UserId}' ${selected}>Mes images</option>`);
+                }
+                else {
+                    $("#searchByUser").append(`<option value='${item.UserId}' ${selected}>${item.Username}</option>`);
+                }
+            }
         }
         function refreshimagesList(images, ETag) {
             function insertIntoImageList(image) {
@@ -330,7 +346,7 @@
                 if (image.UserId == loginInfo.UserId) {
                     $("#imagesList").append(
                         $(` 
-                                <div class='imageLayout' onclick="afficherInfoImage(${image.Id})">
+                                <div class='imageLayout'>
                                     <div class='imageHeader'>
                                         <div class="imageTitle">${image.Title}</div>
                                         <div    class="cmd editCmd  fa fa-pencil-square" 
@@ -344,8 +360,10 @@
                                                 data-toggle="tooltip">
                                         </div>
                                     </div> 
-                                        <div class='image' 
+                                        <div class='image' onclick="afficherInfoImage(${image.Id})"
                                                 style="background-image:url('${image.ThumbnailURL}')">
+                                                <img src="${image.UserAvatarURL == "" ? "images/No_Avatar.png" : image.UserAvatarURL}" alt="UserAvatar" class="imageAvatar" title="${image.Username}">`
+                                                + (image.Shared ? '<img src="images/shared.png" alt="UserAvatar" class="imageAvatar" title="Partagé">' : '') + `
                                         </div>
                                     <div class="imageDate">${convertToFrenchDate(parseInt(image.Date))}</div>
                                 </div>
@@ -353,19 +371,24 @@
                     );
                 }
                 else {
-                    $("#imagesList").append(
+                    if (image.Shared)
+                    {
+                        $("#imagesList").append(
                         $(` 
                                 <div class='imageLayout' onclick="afficherInfoImage(${image.Id})">
                                     <div class='imageHeader'>
                                         <div class="imageTitle">${image.Title}</div>
                                     </div>
-                                        <div class='image' 
+                                        <div class='image' onclick="afficherInfoImage(${image.Id})"
                                                 style="background-image:url('${image.ThumbnailURL}')">
+                                                <img src="${image.UserAvatarURL}" alt="UserAvatar" class="imageAvatar" title="${image.Username}">
                                         </div>
                                     <div class="imageDate">${convertToFrenchDate(parseInt(image.Date))}</div>
                                 </div>
                         `)
-                    );
+                        );
+                    }
+                    
                 }
             }
             currentETag = ETag;
@@ -389,9 +412,37 @@
             $('[data-toggle="tooltip"]').tooltip();
         }
 
-        function afficherInfoImage(imageid)
-        {
-            alert("image " + imageid)
+        function afficherInfoImage(imageid) {
+            GET_ID(imageid, setImagePage, error);
+        }
+
+        function setImagePage(image) {
+            resetImagePage();
+
+            document.getElementById("imageInfoTitre").innerHTML = image.Title;
+            document.getElementById("imageInfoDescription").innerHTML = image.Description;
+            document.getElementById("imageInfoImg").src = image.OriginalURL;
+            document.getElementById("imageInfoHref").href = image.OriginalURL;
+            document.getElementById("imageInfoUserAvatar").src = image.UserAvatarURL;
+            document.getElementById("imageInfoUserName").innerHTML = image.Username;
+            document.getElementById("imageInfoDate").innerHTML = convertToFrenchDate(parseInt(image.Date));
+
+            configDialog();
+
+            function configDialog() {
+                holdCheckETag = true;
+                $("#imageInfoDlg").dialog('option', 'title', "Informations de l'image");
+                $("#imageInfoDlg").dialog('open');
+            }
+            function resetImagePage() {
+                document.getElementById("imageInfoTitre").innerHTML = "";
+                document.getElementById("imageInfoDescription").innerHTML = "";
+                document.getElementById("imageInfoImg").src = "";
+                document.getElementById("imageInfoHref").href = "";
+                document.getElementById("imageInfoUserAvatar").src = "";
+                document.getElementById("imageInfoUserName").innerHTML = "";
+                document.getElementById("imageInfoDate").innerHTML = "";
+            }
         }
 
         function error(status) {
@@ -445,9 +496,10 @@
         }
         function deleteimage(e) {
             holdCheckETag = true;
-            imageIdToDelete = e.target.getAttribute("imageid")
+            imageOrAccountToDelete = "image";
+            IdToDelete = e.target.getAttribute("imageid")
             GET_ID(
-                imageIdToDelete,
+                IdToDelete,
                 image => {
                     $("#confirmationMessage").html("Voulez-vous vraiment effacer l'image <br><b>" + image.Title + "</b>?")
                 },
@@ -465,6 +517,7 @@
             $("#title_input").val("");
             $("#description_input").val("");
             $("#userId_input").val("0");
+            document.getElementById("shared_checkbox").checked = false;
             ImageUploader.resetImage('image');
         }
         function imageFromForm() {
@@ -476,7 +529,8 @@
                     Description: $("#description_input").val(),
                     ImageData: ImageUploader.getImageData('image'),
                     Date: parseInt($("#date_input").val()),
-                    UserId: loginInfo.UserId
+                    UserId: loginInfo.UserId,
+                    Shared: document.getElementById("shared_checkbox").checked
                 };
                 return image;
             } else {
@@ -492,6 +546,7 @@
             $("#title_input").val(image.Title);
             $("#description_input").val(image.Description);
             $("#userId_input").val(image.UserId);
+            document.getElementById("shared_checkbox").checked = image.Shared;
             ImageUploader.setImage('image', image.OriginalURL);
         }
 
@@ -528,7 +583,10 @@
             location.reload(true);
         }
         function getUser() {
-            USER_GET(loginInfo.UserId, saveUser, error)
+            if (connectedAccount.length != 0)
+                USER_GET(connectedAccount.Id, saveUser, error)
+            else
+                USER_GET(loginInfo.UserId, saveUser, error)
         }
 
         function saveUser(user) {
@@ -542,10 +600,17 @@
                 }
             }
             connectedAccount = user;
+            if (isVerifiedUser()) {
+                document.getElementById("userIdentification").style.color = 'blue';
+            }
+            else {
+                document.getElementById("userIdentification").style.color = 'red';
+            }
         }
 
         function UserConnected(login) {
             loginInfo = login;
+            getUser()
             sessionStorage.setItem("access_token", loginInfo.Access_token);
             if (localStorage.getItem("remember")) {
                 remember = true;
@@ -556,8 +621,12 @@
             document.getElementById("userViewConnected").style.display = "inline";
             document.getElementById("userViewNotConnected").style.display = "none";
             $("#userName").html(`${loginInfo.Username}`);
-            getUser()
+
             getImagesList();
+        }
+
+        function isVerifiedUser() {
+            return connectedAccount.VerifyCode == "verified";
         }
 
         function loginUser() {
@@ -579,9 +648,10 @@
         function createAccount() {
             holdCheckETag = true;
             createMode = true;
-            ImageUploader.imageRequired('user_avatar', false);
+            ImageUploader.imageRequired('avatar', false);
+            $("#accountDlgDeleteAccountBtn").hide();
             $("#accountDlg").dialog('option', 'title', "Création de compte");
-            $("#createAccountDlgOkBtn").text('Créer');
+            $("#accountDlgOkBtn").text('Créer');
             $("#accountDlg").dialog('open');
         }
 
@@ -589,12 +659,58 @@
             holdCheckETag = true;
             createMode = false;
             USER_GET(connectedAccount.Id, accountToForm, error);
-            ImageUploader.imageRequired('user_avatar', false);
+            ImageUploader.imageRequired('avatar', false);
+            $("#accountDlgDeleteAccountBtn").show();
             $("#accountDlg").dialog('option', 'title', "Modification de compte");
-            $("#createAccountDlgOkBtn").text('Modifier');
-            $("#accountDlg").dialog('open');
+            $("#accountDlgOkBtn").text('Modifier');
+            $("#accountDlg").dialog('open'); 
         }
 
+        function deleteAccount(){
+            holdCheckETag = true;
+            imageOrAccountToDelete = "account";
+            IdToDelete = connectedAccount.Id;
+            USER_GET(
+                IdToDelete,
+                account => {
+                    $("#confirmationMessage").html("Voulez-vous vraiment supprimer votre compte <br><b>" + account.Name + "</b>?")
+                },
+                error
+            );
+            holdCheckETag = true;
+            $("#confirmDlg").dialog('option', 'title', "Supression du compte");
+            $("#confirmDeleteDlgOkBtn").text("Supprimer");
+            $("#confirmDeleteDlg").dialog('open');
+        }
+
+        function getAllImagesForDelete()
+        {
+            GET_ALL(deleteImgOfDeleteUser, error);
+            disconnect();
+            localStorage.clear();
+        }
+
+        function deleteImgOfDeleteUser(imagesList) {
+            let count = 0;
+            imagesList.forEach(image => {
+                if (image.UserId == userIdToDelete)
+                {
+                    count++;
+                    DELETE(image.Id, () => console.log(count + " image(s) supprimée(s)."), error);
+                }
+            });
+            userIdToDelete = 0;
+        }
+
+
+        function resetAccountForm() {
+            parseInt($("#userId_input").val(0)),
+                $("#userName_input").val(""),
+                $("#userEmail_input").val(""),
+                $("#userPassword_input").val(""),
+                $("#userGUID_input").val("");
+                ImageUploader.resetImage('avatar');
+        }
         function accountFromForm() {
             if ($("#accountForm")[0].checkValidity()) {
                 let account = {
@@ -602,7 +718,8 @@
                     Name: $("#userName_input").val(),
                     Email: $("#userEmail_input").val(),
                     Password: $("#userPassword_input").val(),
-                    AvatarURL: ImageUploader.getImageData("user_avatar")
+                    AvatarGUID: $("#userGUID_input").val(),
+                    ImageData: ImageUploader.getImageData('avatar'),
                 };
                 passwordConfirmation = $("#userConfirmation_input").val();
                 return account;
@@ -612,23 +729,36 @@
             return false;
         }
 
+        function transformAvatarURLToGUID(avatarURL) {
+            if (avatarURL != "http://localhost:5000/images/undefined.png") {
+                let supp = "http://localhost:5000/images/";
+                let avatarGUID = avatarURL.substr(supp.length);
+                return avatarGUID;
+            }
+            return "";
+        }
+
         function accountToForm(account) {
             $("#userId_input").val(account.Id);
             $("#userName_input").val(account.Name);
             $("#userEmail_input").val(account.Email);
             document.getElementById("userPassword_input").required = false;
             document.getElementById("userConfirmation_input").required = false;
-            ImageUploader.setImage('user_avatar', account.AvatarURL);
+            if (account.AvatarGUID == undefined || account.AvatarGUID == "")
+                ImageUploader.setImage('avatar', "images/No_Avatar.png");
+            else
+                ImageUploader.setImage('avatar', account.AvatarURL);
+            $("#userGUID_input").val(account.AvatarGUID);
         }
 
         function connectUser() {
-            USER_GET(noVerifyAccount.Id, firstLoginAfterVerification, error);
+            USER_GET(connectedAccount.Id, firstLoginAfterVerification, error);
         }
 
         function firstLoginAfterVerification(user) {
             let login = {
                 Email: user.Email,
-                Password: $("#userPassword_input").val()
+                Password: localStorage.getItem("mdp")
             }
             USER_LOGIN(login, UserConnected, error);
         }
@@ -683,6 +813,29 @@
                 }]
             });
 
+            $("#imageInfoDlg").dialog({
+                title: "...",
+                autoOpen: false,
+                modal: true,
+                show: { effect: 'fade', speed: 400 },
+                hide: { effect: 'fade', speed: 400 },
+                width: 1200,
+                minWidth: 1200,
+                maxWidth: 1200,
+                height: 750,
+                minHeight: 750,
+                maxHeight: 750,
+                position: { my: "top", at: "top", of: window },
+                buttons: [
+                    {
+                        text: "Fermer",
+                        click: function () {
+                            holdCheckETag = false;
+                            $(this).dialog("close");
+                        }
+                    }]
+            });
+
             $("#verifyAccountDlg").dialog({
                 title: "...",
                 autoOpen: false,
@@ -701,7 +854,7 @@
                     text: "Vérifier",
                     click: function () {
                         let code = $("#verify_input").val();
-                        USER_GET_VERIFICATION_CODE(noVerifyAccount.Id, code, connectUser, error);
+                        USER_GET_VERIFICATION_CODE(connectedAccount.Id, parseInt(code), connectUser, error);
                         holdCheckETag = false;
                         $(this).dialog("close");
                     }
@@ -729,12 +882,20 @@
                 maxHeight: 800,
                 position: { my: "top", at: "top", of: window },
                 buttons: [{
-                    id: "createAccountDlgOkBtn",
-                    text: "Création",
+                    id: "accountDlgDeleteAccountBtn",
+                    text: "Désinscrire",
+                    click: function () {
+                        holdCheckETag = false;
+                        deleteAccount();
+                        $(this).dialog("close");
+                    }
+                },
+                {
+                    id: "accountDlgOkBtn",
+                    text: "...",
                     click: function () {
                         let account = accountFromForm();
                         if (account) {
-
                             if (createMode) {
                                 if (account.Password == passwordConfirmation) {
                                     USER_POST(account, mailVerification, error, "register");
@@ -757,9 +918,11 @@
                                     }
                                     if (account.Email == connectedAccount.Email) {
                                         USER_MODIFY(account, getUser, error);
+                                        resetAccountForm();
                                     }
                                     else {
                                         USER_MODIFY(account, mailVerification, error);
+                                        resetAccountForm();
                                     }
                                     holdCheckETag = false;
                                     $(this).dialog("close");
@@ -768,6 +931,7 @@
                                     alert("Les mots de passe ne correspondent pas.");
                                 }
                             }
+                            getImagesList();
                         }
                     }
                 },
@@ -778,8 +942,9 @@
                         $(this).dialog("close");
                     }
                 }
-            ]
+                ]
             })
+
 
             $("#imageDlg").dialog({
                 title: "...",
@@ -835,9 +1000,17 @@
                     text: "Oui",
                     click: function () {
                         holdCheckETag = false;
-                        if (imageIdToDelete)
-                            DELETE(imageIdToDelete, getImagesList, error);
-                        imageIdToDelete = 0;
+                        if (IdToDelete)
+                            if (imageOrAccountToDelete == "image")
+                                DELETE(IdToDelete, getImagesList, error);
+                            else if (imageOrAccountToDelete == "account")
+                            {
+                                userIdToDelete = IdToDelete;
+                                USER_DELETE(IdToDelete, getAllImagesForDelete, error, loginInfo.Access_token);
+
+                            }
+                            IdToDelete = 0;
+                            imageOrAccountToDelete = "";
                         $(this).dialog("close");
                     }
                 },
@@ -845,7 +1018,7 @@
                     text: "Annuler",
                     click: function () {
                         holdCheckETag = false;
-                        imageIdToDelete = 0;
+                        IdToDelete = 0;
                         $(this).dialog("close");
                     }
                 }]
@@ -882,7 +1055,7 @@
                     text: "Fermer",
                     click: function () {
                         holdCheckETag = false;
-                        imageIdToDelete = 0;
+                        IdToDelete = 0;
                         $(this).dialog("close");
                     }
                 }]

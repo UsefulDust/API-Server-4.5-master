@@ -132,6 +132,15 @@ textarea2 {
     background-position: center;
     background-repeat: no-repeat;
 }
+
+.imageAvatar {
+    height: 40px;
+    width: 40px;
+    border-radius: 20px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
 .imageLayout {
     flex:1;
     width: 300px !important;
@@ -139,6 +148,7 @@ textarea2 {
     max-width: 400px;
     align-content: stretch;
     scroll-snap-align:start;
+    cursor: pointer;
 }
 @media (max-width: 1980px) {
     .imageLayout {
@@ -154,13 +164,13 @@ textarea2 {
 .imageLayout:hover .cmd {
     display: inline-block;
 }
+
 .imageLayout:hover .imageHeader {
     display: grid;
     grid-template-columns: auto 35px 35px;
 }
 #userIdentification{
     display: inline-block;
-    color: blue;
     cursor: pointer;
 }
 #userIdentification:hover
@@ -267,6 +277,31 @@ label {
 #researchDiv div label{
     color: black;
 }
+
+#imageInfoDlg {
+    color: black;
+    font-size: 14px;
+}
+
+#imageInfoDlg #imageInfoImg {
+    display: inline-block;
+    width: 50%;
+    height: 50%;
+    position: relative;
+    float: right;
+}
+
+#imageInfoDlg #imageInfoUserAvatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 20px;
+}
+
+#imageInfoDlg label {
+    color: gray;
+    font-size: 16px;
+}
+
 div2,
 span2 {
     border: 1px solid red;

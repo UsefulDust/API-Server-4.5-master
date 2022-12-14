@@ -4,6 +4,7 @@ const TokenManager = require('../tokenManager');
 const utilities = require("../utilities");
 const Gmail = require("../gmail");
 
+
 module.exports =
     class AccountsController extends require('./Controller') {
         constructor(HttpContext,) {
@@ -26,13 +27,10 @@ module.exports =
             let user = this.repository.findByField("Email", loginInfo.Email);
             if (user != null) {
                 if (user.Password == loginInfo.Password) {
-                    if (user.VerifyCode == 'verified') {
-                        let newToken = TokenManager.create(user);
-                        this.HttpContext.response.JSON(newToken);
-                    } else {
-                        this.HttpContext.response.unverifiedUser();
-                    }
-                } else {
+                    let newToken = TokenManager.create(user);
+                    this.HttpContext.response.JSON(newToken);
+                }
+                else {
                     this.HttpContext.response.wrongPassword();
                 }
             } else {
@@ -49,8 +47,7 @@ module.exports =
             let html = `
                 Bonjour ${user.Name}, <br /> <br />
                 Voici votre code vérification :
-                <h3>${user.VerifyCode}</h3>
-            `;
+                <h3>${user.VerifyCode}</h3>`;
             const gmail = new Gmail();
             gmail.send(user.Email, 'Vérification de courriel...', html);
         }
