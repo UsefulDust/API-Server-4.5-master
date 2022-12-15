@@ -1,5 +1,5 @@
-const apiUserURL = "http://localhost:5000/accounts";
-const loginApiURL = "http://localhost:5000/token";
+const apiUserURL = "https://vincent-lepage-api-server-pfi.glitch.me/accounts";
+const loginApiURL = "https://vincent-lepage-api-server-pfi.glitch.me/token";
 function USER_HEAD(successCallBack, errorCallBack) {
     $.ajax({
         url: apiUserURL,

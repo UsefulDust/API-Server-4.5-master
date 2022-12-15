@@ -1,4 +1,4 @@
-const apiBaseURL = "http://localhost:5000/api/images";
+const apiBaseURL = "https://vincent-lepage-api-server-pfi.glitch.me/api/images";
 
 function HEAD(successCallBack, errorCallBack) {
     $.ajax({

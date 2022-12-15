@@ -594,7 +594,7 @@
             if (user.AvatarGUID != "") {
                 if (user.AvatarGUID != undefined) {
                     let avatar = user.AvatarURL;
-                    let supp = "http://localhost:5000/images/";
+                    let supp = "https://vincent-lepage-api-server-pfi.glitch.me/images/";
                     avatar = avatar.substr(supp.length);
                     document.getElementById("imageUser").src = "../images/" + avatar;
                 }
@@ -730,8 +730,8 @@
         }
 
         function transformAvatarURLToGUID(avatarURL) {
-            if (avatarURL != "http://localhost:5000/images/undefined.png") {
-                let supp = "http://localhost:5000/images/";
+            if (avatarURL != "https://vincent-lepage-api-server-pfi.glitch.me/images/undefined.png") {
+                let supp = "https://vincent-lepage-api-server-pfi.glitch.me/images/";
                 let avatarGUID = avatarURL.substr(supp.length);
                 return avatarGUID;
             }
