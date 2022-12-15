@@ -27,8 +27,8 @@ module.exports =
                 let user = this.UsersRepository.get(bindedImage.UserId);
                 if (user) {
                     bindedImage.Username = user.Name;
-                    if (user.AvatarURL == 'https://vincent-lepage-api-server-pfi.glitch.me/images/undefined.png')
-                        bindedImage.UserAvatarURL = 'https://vincent-lepage-api-server-pfi.glitch.me/ImagesManager2022/images/No_Avatar.png'
+                    if (user.AvatarURL == 'https://vincentlepage-pfi-api.glitch.me/images/undefined.png')
+                        bindedImage.UserAvatarURL = 'https://vincentlepage-pfi-api.glitch.me/ImagesManager2022/images/No_Avatar.png'
                     else
                         bindedImage.UserAvatarURL = user.AvatarURL
                 }

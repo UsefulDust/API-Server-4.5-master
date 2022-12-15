@@ -1,4 +1,4 @@
-const apiBaseURL = "https://vincent-lepage-api-server-pfi.glitch.me/api/images";
+const apiBaseURL = "https://vincentlepage-pfi-api.glitch.me/api/images";
 
 function HEAD(successCallBack, errorCallBack) {
     $.ajax({
